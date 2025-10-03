@@ -1,7 +1,5 @@
 using System;
-using GlobalEnums;
 using HarmonyLib;
-using UnityEngine;
 
 namespace HKSS_DGLab
 {
@@ -12,30 +10,30 @@ namespace HKSS_DGLab
     public static class HarmonyPatches
     {
         /// <summary>
-        ///     Hook HeroController.TakeDamage 方法来监听玩家受伤事件
+        ///     Hook PlayerData.TakeHealth 方法来监听玩家掉血事件
         /// </summary>
-        [HarmonyPatch(typeof(HeroController), "TakeDamage")]
-        [HarmonyPrefix]
-        private static void PrefixTakeDamage(ref GameObject go, CollisionSide damageSide, int damageAmount,
-            HazardType hazardType, DamagePropertyFlags damagePropertyFlags = DamagePropertyFlags.None)
+        /// <param name="amount"></param>
+        /// <param name="hasBlueHealth"></param>
+        /// <param name="allowFracturedMaskBreak"></param>
+        [HarmonyPatch(typeof(PlayerData), "TakeHealth")]
+        private static void PrefixTakeHealth(int amount, bool hasBlueHealth, bool allowFracturedMaskBreak)
         {
+            // 触发DGLab响应
             try
             {
-                // 检查插件是否已初始化
                 var plugin = Plugin.Instance;
                 if (plugin == null || !plugin.IsReady())
                     return;
 
-                if ((damagePropertyFlags & DamagePropertyFlags.Self) != DamagePropertyFlags.None &&
-                    InteractManager.BlockingInteractable != null) return;
+                if (amount <= 0)
+                    return; // 只处理正数掉血
 
-                // 触发DGLab响应
                 var eventHandler = plugin.GetGameEventHandler();
-                eventHandler?.OnPlayerTakeDamage(damageAmount);
+                eventHandler?.OnPlayerTakeDamage(amount);
             }
             catch (Exception ex)
             {
-                Plugin.Logger?.LogError($"处理受伤事件时发生错误: {ex.Message}");
+                Plugin.Logger?.LogError($"处理掉血事件时发生错误: {ex.Message}");
             }
         }
 
